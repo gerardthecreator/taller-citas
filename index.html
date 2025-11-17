@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citas - Taller Mecánico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- ESTILOS CSS (NEUMORFISMO Y RESPONSIVE) --- */
+        :root {
+            --bg-color: #e0e5ec;
+            --text-color: #5c677d;
+            --anton-font: 'Anton', sans-serif;
+            --oswald-font: 'Oswald', sans-serif;
+            /* Keto es una fuente comercial, usamos Oswald como alternativa principal */
+            --keto-font: 'Oswald', sans-serif; 
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--oswald-font);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 540px;
+        }
+
+        .card {
+            background-color: var(--bg-color);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 9px 9px 16px rgba(163, 177, 198, 0.6),
+                        -9px -9px 16px rgba(255, 255, 255, 0.5);
+        }
+
+        h1, h2 {
+            font-family: var(--anton-font);
+            text-align: center;
+            color: var(--text-color);
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        input[type="text"], input[type="datetime-local"] {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background-color: var(--bg-color);
+            box-shadow: inset 5px 5px 10px rgba(163, 177, 198, 0.6),
+                        inset -5px -5px 10px rgba(255, 255, 255, 0.5);
+            font-family: var(--oswald-font);
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-family: var(--anton-font);
+            font-size: 1.2em;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            box-shadow: 5px 5px 10px rgba(163, 177, 198, 0.6),
+                        -5px -5px 10px rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        button:active {
+            box-shadow: inset 5px 5px 10px rgba(163, 177, 198, 0.6),
+                        inset -5px -5px 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        #calendar {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .cita {
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            text-align: center;
+            box-shadow: 5px 5px 10px rgba(163, 177, 198, 0.6),
+                        -5px -5px 10px rgba(255, 255, 255, 0.5);
+        }
+        .cita.pendiente { background-color: #f1c40f; color: #fff; }
+        .cita.aceptada { background-color: #2ecc71; color: #fff; }
+        .cita.denegada { background-color: #e74c3c; color: #fff; }
+        .cita strong { display: block; margin-bottom: 5px; font-size: 1.1em; }
+
+        #notification {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none; /* Oculto por defecto */
+        }
+        #notification.success { background-color: #2ecc71; color: white; }
+        #notification.error { background-color: #e74c3c; color: white; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="card">
+            <h1>Taller Mecánico</h1>
+            <h2>Registrar una Cita</h2>
+            <form id="cita-form">
+                <div class="form-group">
+                    <label for="nombre">Tu Nombre:</label>
+                    <input type="text" id="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="vehiculo">Vehículo y Servicio:</label>
+                    <input type="text" id="vehiculo" placeholder="Ej: Toyota Corolla, cambio de aceite" required>
+                </div>
+                <div class="form-group">
+                    <label for="fecha">Fecha y Hora Sugerida:</label>
+                    <input type="datetime-local" id="fecha" required>
+                </div>
+                <button type="submit">Solicitar Cita</button>
+            </form>
+            <div id="notification"></div>
+        </div>
+
+        <div class="card">
+            <h2>Calendario de Citas</h2>
+            <div id="calendar">
+                <!-- Las citas se cargarán aquí automáticamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // --- LÓGICA JAVASCRIPT ---
+
+        // 1. CONFIGURACIÓN DE FIREBASE (¡RELLENA ESTO!)
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY", // Puede que no lo necesites para Realtime DB
+            authDomain: "TU_AUTH_DOMAIN",
+            databaseURL: "https://URL-DE-TU-BASE-DE-DATOS.firebaseio.com", // ¡IMPORTANTE!
+            projectId: "TU_PROJECT_ID",
+            storageBucket: "TU_STORAGE_BUCKET",
+            messagingSenderId: "TU_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const citasRef = database.ref('citas');
+
+        // 2. ENVIAR EL FORMULARIO AL BACKEND
+        const citaForm = document.getElementById('cita-form');
+        const notificationDiv = document.getElementById('notification');
+
+        citaForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('nombre').value;
+            const vehiculo = document.getElementById('vehiculo').value;
+            const fecha = document.getElementById('fecha').value;
+
+            // Deshabilitar botón para evitar envíos múltiples
+            citaForm.querySelector('button').disabled = true;
+            citaForm.querySelector('button').textContent = 'Enviando...';
+
+            try {
+                // La URL apuntará a nuestra función sin servidor en Vercel
+                const response = await fetch('/api/crear-cita', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, vehiculo, fecha })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error en la solicitud');
+                }
+
+                const result = await response.json();
+                showNotification(result.message, 'success');
+                citaForm.reset();
+
+            } catch (error) {
+                showNotification('No se pudo enviar la cita. Inténtalo de nuevo.', 'error');
+            } finally {
+                citaForm.querySelector('button').disabled = false;
+                citaForm.querySelector('button').textContent = 'Solicitar Cita';
+            }
+        });
+
+        function showNotification(message, type) {
+            notificationDiv.textContent = message;
+            notificationDiv.className = type;
+            notificationDiv.style.display = 'block';
+            setTimeout(() => {
+                notificationDiv.style.display = 'none';
+            }, 4000);
+        }
+
+        // 3. ESCUCHAR CAMBIOS EN TIEMPO REAL DESDE FIREBASE
+        const calendarDiv = document.getElementById('calendar');
+
+        citasRef.on('value', (snapshot) => {
+            calendarDiv.innerHTML = ''; // Limpiar el calendario
+            const citas = snapshot.val();
+            if (citas) {
+                Object.keys(citas).forEach(key => {
+                    const cita = citas[key];
+                    
+                    // Solo mostrar citas aceptadas o pendientes
+                    if (cita.estado !== 'denegada') {
+                        const citaElement = document.createElement('div');
+                        citaElement.classList.add('cita', cita.estado); // clase: pendiente, aceptada, etc.
+                        
+                        const fechaObj = new Date(cita.fecha);
+                        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+                        const horaFormateada = fechaObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+                        citaElement.innerHTML = `
+                            <strong>${cita.nombre}</strong>
+                            <span>${fechaFormateada} - ${horaFormateada}</span>
+                            <span>${cita.estado.toUpperCase()}</span>
+                        `;
+                        calendarDiv.appendChild(citaElement);
+                    }
+                });
+            }
+        });
+
+    </script>
+</body>
+  </html>
